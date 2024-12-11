@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flower Power Hangman</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: url("img/flower.jpg") no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Brush Script MT', cursive;
+            color: #FF66B2;
+            margin: 20px 0;
+            font-size: 6rem;
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80%;
+            max-width: 1200px;
+        }
+
+        .left-panel {
+            margin-right: 20px;
+            text-align: center;
+        }
+
+        .right-panel {
+            margin-left: 20px;
+            text-align: center;
+        }
+
+        .container {
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #word {
+            font-size: 2rem;
+            letter-spacing: 0.5rem;
+        }
+
+        .message {
+            font-size: 1.5rem;
+            color: red;
+            margin: 10px 0;
+        }
+
+        #wrong-letters {
+            margin: 20px 0;
+        }
+
+        #wrong-letters span {
+            font-size: 1.2rem;
+            color: #e74c3c;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .keyboard button {
+            padding: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: 50px;
+            height: 50px;
+        }
+
+        .keyboard button:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background-color: #fff;
+            border: 1px solid #333;
+        }
+
+        #restart {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .buttons a {
+            text-decoration: none;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            color: white;
+            background-color: #FF66B2;
+            border-radius: 5px;
+            margin: 5px;
+            display: inline-block;
+        }
+
+        .buttons a:hover {
+            background-color: #FF99CC;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flower Power Hangman</h1>
+    <div class="game-container">
+        <div class="left-panel">
+            <canvas id="hangmanCanvas" width="300" height="400"></canvas>
+            <div id="word">_ _ _ _ _</div>
+            <div class="message" id="message"></div>
+            <div id="wrong-letters">Wrong letters: <span id="wrongLetters"></span></div>
+        </div>
+
+        <div class="right-panel">
+            <div class="keyboard" id="keyboard"></div>
+            <button id="restart">Restart</button>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <a href="scratch.html" target="_blank">Happy Harp Studio</a>
+        <a href="../index.html" target="_blank">Resume</a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("hangmanCanvas");
+        const ctx = canvas.getContext("2d");
+        const wordElement = document.getElementById("word");
+        const wrongLettersElement = document.getElementById("wrongLetters");
+        const messageElement = document.getElementById("message");
+        const keyboardElement = document.getElementById("keyboard");
+        const restartButton = document.getElementById("restart");
+
+        const words = ["rose", "tulip", "sunflower", "daisy", "lily", "orchid", "peony", "lavender", "magnolia", "carnation", "violet", "daffodil", "gerbera", "hydrangea", "marigold"];
+        const maxWrongGuesses = 6;
+
+        let selectedWord;
+        let guessedLetters;
+        let wrongLetters;
+
+        function initializeGame() {
+            selectedWord = words[Math.floor(Math.random() * words.length)];
+            guessedLetters = [];
+            wrongLetters = [];
+            wordElement.textContent = selectedWord.split("").map(() => "_").join(" ");
+            wrongLettersElement.textContent = "";
+            messageElement.textContent = "";
+            restartButton.style.display = "none";
+            drawFlower(0);
+            createKeyboard();
+        }
+
+        function drawFlower(step) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#333";
+
+            const centerX = 150;
+            const centerY = 180;
+
+            if (step > 0) {
+                drawPetal(centerX, centerY, -40, -40);
+            }
+            if (step > 1) {
+                drawPetal(centerX, centerY, 40, -40);
+            }
+            if (step > 2) {
+                drawPetal(centerX, centerY, 40, 40);
+            }
+            if (step > 3) {
+                drawPetal(centerX, centerY, -40, 40);
+            }
+
+            if (step > 4) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+                ctx.fillStyle = "yellow";
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            if (step > 5) {
+                drawStem(centerX, centerY + 20);
+            }
+        }
+
+        function drawPetal(x, y, offsetX, offsetY) {
+            ctx.beginPath();
+            ctx.ellipse(x + offsetX, y + offsetY, 40, 60, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fillStyle = "pink";
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function drawStem(x, y) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + 120);
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = "green";
+            ctx.stroke();
+        }
+
+        function createKeyboard() {
+            keyboardElement.innerHTML = "";
+            for (let i = 97; i <= 122; i++) {
+                const button = document.createElement("button");
+                button.textContent = String.fromCharCode(i);
+                button.addEventListener("click", () => handleGuess(button.textContent));
+                keyboardElement.appendChild(button);
+            }
+        }
+
+        function handleGuess(letter) {
+            if (guessedLetters.includes(letter) || wrongLetters.includes(letter)) return;
+
+            if (selectedWord.includes(letter)) {
+                guessedLetters.push(letter);
+                updateWordDisplay();
+            } else {
+                wrongLetters.push(letter);
+                wrongLettersElement.textContent = wrongLetters.join(", ");
+                drawFlower(wrongLetters.length);
+            }
+
+            disableGuessedKeys();
+            checkGameStatus();
+        }
+
+        function disableGuessedKeys() {
+            const buttons = keyboardElement.querySelectorAll("button");
+            buttons.forEach(button => {
+                if (guessedLetters.includes(button.textContent) || wrongLetters.includes(button.textContent)) {
+                    button.disabled = true;
+                }
+            });
+        }
+
+        function updateWordDisplay() {
+            wordElement.textContent = selectedWord
+                .split("")
+                .map((letter) => (guessedLetters.includes(letter) ? letter : "_"))
+                .join(" ");
+        }
+
+        function checkGameStatus() {
+            if (!wordElement.textContent.includes("_")) {
+                messageElement.textContent = "You Win!";
+                endGame();
+            } else if (wrongLetters.length >= maxWrongGuesses) {
+                messageElement.textContent = "You Lose! The word was: " + selectedWord;
+                endGame();
+            }
+        }
+
+        function endGame() {
+            keyboardElement.innerHTML = "";
+            restartButton.style.display = "inline-block";
+        }
+
+        restartButton.addEventListener("click", initializeGame);
+
+        initializeGame();
+    </script>
+</body>
+</html>
